@@ -1,0 +1,12 @@
+---
+- hosts: test-server
+  become: yes
+  tasks:
+    - name: Install Docker
+      apt:
+        name: docker.io
+        state: present
+    - name: Start Docker Service
+      service:
+        name: docker
+        state: started
