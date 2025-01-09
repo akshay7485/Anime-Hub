@@ -1,0 +1,40 @@
+---
+- name: Install Prometheus and Grafana in Kubernetes
+  hosts: localhost
+  gather_facts: false
+  tasks:
+    - name: Ensure Helm is installed
+      ansible.builtin.command:
+        cmd: helm version
+      register: helm_version
+      ignore_errors: yes
+
+    - name: Install Helm if not installed
+      ansible.builtin.command:
+        cmd: curl https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3 | bash
+      when: helm_version.rc != 0
+
+    - name: Add Prometheus and Grafana Helm charts repository
+      community.kubernetes.helm_repository:
+        name: prometheus-community
+        repo_url: https://prometheus-community.github.io/helm-charts
+
+    - name: Install Prometheus using Helm
+      community.kubernetes.helm:
+        name: prometheus
+        chart: prometheus-community/kube-prometheus-stack
+        state: present
+        namespace: monitoring
+        create_namespace: yes
+        values:
+          - server.persistentVolume.enabled=false  # Optional based on your needs
+
+    - name: Install Grafana using Helm
+      community.kubernetes.helm:
+        name: grafana
+        chart: grafana/grafana
+        state: present
+        namespace: monitoring
+        create_namespace: yes
+        values:
+          - persistence.enabled=false  # Optional based on your needs
