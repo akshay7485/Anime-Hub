@@ -1,40 +1,140 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: monitoring
 ---
-- name: Install Prometheus and Grafana in Kubernetes
-  hosts: localhost
-  gather_facts: false
-  tasks:
-    - name: Ensure Helm is installed
-      ansible.builtin.command:
-        cmd: helm version
-      register: helm_version
-      ignore_errors: yes
-
-    - name: Install Helm if not installed
-      ansible.builtin.command:
-        cmd: curl https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3 | bash
-      when: helm_version.rc != 0
-
-    - name: Add Prometheus and Grafana Helm charts repository
-      community.kubernetes.helm_repository:
-        name: prometheus-community
-        repo_url: https://prometheus-community.github.io/helm-charts
-
-    - name: Install Prometheus using Helm
-      community.kubernetes.helm:
-        name: prometheus
-        chart: prometheus-community/kube-prometheus-stack
-        state: present
-        namespace: monitoring
-        create_namespace: yes
-        values:
-          - server.persistentVolume.enabled=false  # Optional based on your needs
-
-    - name: Install Grafana using Helm
-      community.kubernetes.helm:
-        name: grafana
-        chart: grafana/grafana
-        state: present
-        namespace: monitoring
-        create_namespace: yes
-        values:
-          - persistence.enabled=false  # Optional based on your needs
+# Prometheus ConfigMap to scrape metrics from Kubernetes Pods
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: prometheus-config
+  namespace: monitoring
+data:
+  prometheus.yml: |
+    global:
+      scrape_interval: 15s
+    scrape_configs:
+      - job_name: 'kubernetes-pods'
+        kubernetes_sd_configs:
+          - role: pod
+        metrics_path: /metrics
+        relabel_configs:
+          - source_labels: [__meta_kubernetes_pod_name]
+            target_label: pod_name
+---
+# Prometheus Deployment
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: prometheus
+  namespace: monitoring
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: prometheus
+  template:
+    metadata:
+      labels:
+        app: prometheus
+    spec:
+      containers:
+        - name: prometheus
+          image: prom/prometheus:latest
+          ports:
+            - containerPort: 9090
+          volumeMounts:
+            - name: config-volume
+              mountPath: /etc/prometheus/prometheus.yml
+              subPath: prometheus.yml
+      volumes:
+        - name: config-volume
+          configMap:
+            name: prometheus-config
+---
+# Prometheus Service exposed via NodePort
+apiVersion: v1
+kind: Service
+metadata:
+  name: prometheus
+  namespace: monitoring
+spec:
+  ports:
+    - port: 9090
+      targetPort: 9090
+      nodePort: 31000 # NodePort for Prometheus
+  selector:
+    app: prometheus
+  type: NodePort
+---
+# Grafana Deployment
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: grafana
+  namespace: monitoring
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: grafana
+  template:
+    metadata:
+      labels:
+        app: grafana
+    spec:
+      containers:
+        - name: grafana
+          image: grafana/grafana:latest
+          ports:
+            - containerPort: 3000
+          env:
+            - name: GF_SECURITY_ADMIN_PASSWORD
+              value: "admin"
+---
+# Grafana Service exposed via NodePort
+apiVersion: v1
+kind: Service
+metadata:
+  name: grafana
+  namespace: monitoring
+spec:
+  ports:
+    - port: 3000
+      targetPort: 3000
+      nodePort: 32000 # NodePort for Grafana
+  selector:
+    app: grafana
+  type: NodePort
+---
+# Prometheus RBAC for access control
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: prometheus
+  namespace: monitoring
+rules:
+  - apiGroups: [""]
+    resources: ["nodes", "nodes/proxy", "pods", "services", "endpoints", "configmaps", "replicationcontrollers", "secrets"]
+    verbs: ["get", "list", "watch"]
+  - apiGroups: ["extensions"]
+    resources: ["ingresses"]
+    verbs: ["get", "list", "watch"]
+  - apiGroups: ["apps"]
+    resources: ["deployments"]
+    verbs: ["get", "list", "watch"]
+---
+# Prometheus RBAC ClusterRoleBinding
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: prometheus
+  namespace: monitoring
+subjects:
+  - kind: ServiceAccount
+    name: default
+    namespace: monitoring
+roleRef:
+  kind: ClusterRole
+  name: prometheus
+  apiGroup: rbac.authorization.k8s.io
