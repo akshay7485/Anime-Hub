@@ -16,7 +16,16 @@ spec:
       - name: coza-store-webapp
         image: akshaypatil7485/coza-store-webapp:latest
         ports:
-        - containerPort: 8080  # Change the port to 8080
+        - containerPort: 8080  # Change the port to 8080 apache listes port 8080
+        readinessProbe:
+            httpGet:
+              path: /server-status
+              port: 8080
+          livenessProbe:
+            httpGet:
+              path: /server-status
+              port: 8080
+        
 ---
 apiVersion: v1
 kind: Service
