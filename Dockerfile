@@ -1,21 +1,28 @@
-# Use the official httpd image from Docker Hub
+# Use the official Apache HTTPD image from Docker Hub (Alpine version)
 FROM httpd:alpine
 
-
-
-# Install mod_status and Prometheus exporter (mod_exporter) for Apache
-RUN apk --no-cache add apache2-utils \
-    && apk --no-cache add curl \
-    && echo "ServerStatus On\nExtendedStatus On\n" >> /usr/local/apache2/conf/httpd.conf \
+# Install apache2-utils (for mod_status) and curl (for Prometheus integration)
+RUN apk --no-cache add apache2-utils curl \
+    # Enable mod_status and configure server-status endpoint
+    && echo "Listen 8080" >> /usr/local/apache2/conf/httpd.conf \
+    && echo "ServerStatus On" >> /usr/local/apache2/conf/httpd.conf \
+    && echo "ExtendedStatus On" >> /usr/local/apache2/conf/httpd.conf \
     && echo "Alias /server-status /usr/local/apache2/logs/status.html" >> /usr/local/apache2/conf/httpd.conf \
-    && echo "<Location /server-status>\n    SetHandler server-status\n    Require local\n</Location>" >> /usr/local/apache2/conf/httpd.conf \
+    && echo "<Location /server-status>" >> /usr/local/apache2/conf/httpd.conf \
+    && echo "    SetHandler server-status" >> /usr/local/apache2/conf/httpd.conf \
+    && echo "    Require all granted" >> /usr/local/apache2/conf/httpd.conf \
+    && echo "</Location>" >> /usr/local/apache2/conf/httpd.conf \
+    # Create the log directory and status file
     && mkdir -p /usr/local/apache2/logs \
-    && touch /usr/local/apache2/logs/status.html
-# Copy the local directory contents into the container
-# The httpd container serves files from /usr/local/apache2/htdocs by default
-COPY . /usr/local/apache2/htdocs/
+    && touch /usr/local/apache2/logs/status.html \
+    # Cleanup to reduce image size
+    && rm -rf /var/cache/apk/*
 
-# Expose port 8080   EXPOSE 80 The server-status page is available on port 80 for Prometheus to scrape the Apache metrics.
+# Copy your website files into the container (if you have any static content)
+COPY ./ /usr/local/apache2/htdocs/
+
+# Expose port 8080 for the HTTPD server
 EXPOSE 8080
-# Command to run the Apache HTTP server
+
+# Command to run the Apache HTTP server in the foreground
 CMD ["httpd-foreground"]
