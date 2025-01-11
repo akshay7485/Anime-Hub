@@ -21,7 +21,7 @@ spec:
             httpGet:
               path: /server-status
               port: 8080
-          livenessProbe:
+        livenessProbe:
             httpGet:
               path: /server-status
               port: 8080
