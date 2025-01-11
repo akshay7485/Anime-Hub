@@ -1,20 +1,20 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: coza-store-deployment
+  name: anime-hub-deployment
 spec:
   replicas: 1
   selector:
     matchLabels:
-      app: coza-store
+      app: anime-hub
   template:
     metadata:
       labels:
-        app: coza-store
+        app: anime-hub
     spec:
       containers:
-      - name: coza-store-webapp
-        image: akshaypatil7485/coza-store-webapp:latest
+      - name: anime-hub-webapp
+        image: akshaypatil7485/anime-hub-webapp:latest
         ports:
         - containerPort: 8080  # Change the port to 8080 apache listes port 8080
         readinessProbe:
@@ -30,10 +30,10 @@ spec:
 apiVersion: v1
 kind: Service
 metadata:
-  name: coza-store-service
+  name: anime-hub-service
 spec:
   selector:
-    app: coza-store
+    app: anime-hub
   ports:
     - protocol: TCP
       port: 8080   # Port exposed inside the Kubernetes cluster
