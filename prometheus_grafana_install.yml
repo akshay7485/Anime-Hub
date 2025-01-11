@@ -29,12 +29,12 @@ data:
         metrics_path: /server-status
         scheme: http
         static_configs:
-          - targets: ['coza-store-service:8080']  # Scrape the /server-status endpoint from the coza-store service
+          - targets: ['anime-hub-service:8080']  # Scrape the /server-status endpoint from the coza-store service
         relabel_configs:
           - source_labels: [__meta_kubernetes_pod_label_app]
             target_label: app
             action: keep
-            regex: coza-store
+            regex: anime-hub
 ---
             
 # Prometheus Deployment
