@@ -1,4 +1,4 @@
-# Use the official Apache HTTPD image from Docker Hub (Alpine version)
+ # Use the official Apache HTTPD image from Docker Hub (Alpine version)
 FROM httpd:alpine
 
 # Install apache2-utils (for mod_status) and curl (for Prometheus integration)
