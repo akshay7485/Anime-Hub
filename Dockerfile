@@ -1,25 +1,14 @@
-# Use the official Apache HTTPD image from Docker Hub (Alpine version)
-FROM httpd:alpine
+# Use Nginx as the base image
+FROM nginx:alpine
 
-# Install apache2-utils (for mod_status) and curl (for Prometheus integration)
-RUN apk --no-cache add apache2-utils curl \
-    && echo "LoadModule status_module modules/mod_status.so" >> /usr/local/apache2/conf/httpd.conf \
-    && echo "ExtendedStatus On" >> /usr/local/apache2/conf/httpd.conf \
-    && echo "<Location /server-status>" >> /usr/local/apache2/conf/httpd.conf \
-    && echo "    SetHandler server-status" >> /usr/local/apache2/conf/httpd.conf \
-    && echo "    Require all granted" >> /usr/local/apache2/conf/httpd.conf \
-    && echo "</Location>" >> /usr/local/apache2/conf/httpd.conf \
-    && mkdir -p /usr/local/apache2/logs \
-    && chmod -R 755 /usr/local/apache2/logs \
-    && chown -R daemon:daemon /usr/local/apache2/logs \
-    && rm -rf /var/cache/apk/*
+# Copy the custom nginx.conf into the container
+COPY nginx.conf /etc/nginx/nginx.conf
 
-# Copy your website files into the container (if you have any static content)
-COPY ./ /usr/local/apache2/htdocs/
+# Copy website files into the container's html directory
+COPY ./ /usr/share/nginx/html/
 
-# Expose port 8080 for the HTTPD server
+# Expose port 8080 for external access
 EXPOSE 8080
 
-# Command to run the Apache HTTP server in the foreground
-CMD ["httpd-foreground"]
-
+# Run nginx in the foreground
+CMD ["nginx", "-g", "daemon off;"]
