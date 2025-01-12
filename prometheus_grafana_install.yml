@@ -1,3 +1,4 @@
+---
 apiVersion: v1
 kind: Namespace
 metadata:
@@ -21,10 +22,8 @@ data:
         relabel_configs:
           - source_labels: [__meta_kubernetes_pod_name]
             target_label: pod_name
-          
----
----
-# Scraping Apache metrics for coza-store web app
+
+      # Scraping Apache metrics for coza-store web app
       - job_name: 'nginx-metrics'
         metrics_path: /server-status
         scheme: http
@@ -36,7 +35,6 @@ data:
             action: keep
             regex: anime-hub
 ---
-            
 # Prometheus Deployment
 apiVersion: apps/v1
 kind: Deployment
