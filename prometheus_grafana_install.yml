@@ -25,7 +25,7 @@ data:
 ---
 ---
 # Scraping Apache metrics for coza-store web app
-      - job_name: 'apache-metrics'
+      - job_name: 'nginx-metrics'
         metrics_path: /server-status
         scheme: http
         static_configs:
